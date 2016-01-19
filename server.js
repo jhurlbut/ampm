@@ -132,3 +132,56 @@ if ($$sharedState) {
 logger.info('Server started.');
 console.log('Console is at: http://' + os.hostname() + ':' + $$network.get('socketToConsolePort'));
 console.log(JSON.stringify($$config, null, 2));
+
+var express = require('express');
+var http = require('http');
+var path = require('path');
+var done=false;
+var filename;
+
+var app = express();
+var server  = require('http').createServer(app);
+var WebSocketServer = require("ws").Server;
+var wss = new WebSocketServer({server: server});
+var WebSocket = require('ws');
+console.log("websocket server created");
+
+app.set('port', (process.env.PORT || 5000));
+
+
+server.listen(app.get('port'), function() {
+  console.log('Node app is running on port', app.get('port'));
+});
+wss.on("connection", function(ws) {
+    try {
+        console.log('connected to touchdesigner');
+      var host = 'ws://artwall.herokuapp.com';
+      var wsremote = new WebSocket(host);
+      
+      /*setInterval(function timeout() {
+         console.log('send ping ' + Date.now().toString());
+         if(wsremote != undefined){
+            wsremote.send(Date.now().toString(), {mask: true}, function ack(error) {
+              // if error is not defined, the send has been completed,
+              // otherwise the error object will indicate what failed.
+              if(error != undefined)
+                console.log('socket send client cb:',error);
+            })
+        }
+      }, 10000);*/
+
+      wsremote.onmessage = function (event) {
+        //console.log('send data to touch client '+event.data);
+         ws.send(event.data, function ack(error) {
+          // if error is not defined, the send has been completed,
+          // otherwise the error object will indicate what failed.
+          if(error != undefined)
+            console.log('socket send client cb:',error);
+        });
+      };
+    }
+    catch(err) {
+    console.log("on connection error: " +err.message);
+    }
+
+})

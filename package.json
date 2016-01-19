@@ -35,6 +35,8 @@
     "winston": "^0.9.0",
     "winston-loggly": "^1.0.2",
     "winston-mail": "^0.3.2",
-    "xregexp": "^2.0.0"
+    "xregexp": "^2.0.0",
+    "ws": "0.4.x"
+   
   }
 }

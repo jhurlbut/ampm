@@ -112,6 +112,7 @@ exports.Persistence = BaseModel.extend({
 
         // Web apps will send them over the app socket.
         $$network.transports.socketToApp.sockets.on('connection', _.bind(function(socket) {
+            logger.info('onsocketconnect')
             socket.on('heart', _.bind(this._onHeart, this));
             socket.emit('config', $$config);
         }, this));
@@ -241,6 +242,7 @@ exports.Persistence = BaseModel.extend({
 
     // Handle heartbeat messages from the app.
     _onHeart: function(message) {
+       //logger.info('onheart')
         this._resetRestartTimeout(this.get('heartbeatTimeout'));
         if (!this._lastHeart) {
             this._isStartingUp = false;
@@ -333,6 +335,7 @@ exports.Persistence = BaseModel.extend({
 
         // Check on an interval to see if it's dead.
         var check = setInterval(_.bind(function() {
+            logger.info('check process '+ this._appProcess + 'sideprocessid ' +this.processId())
             if (this.processId() || this.sideProcessId()) {
                 return;
             }
@@ -396,12 +399,14 @@ exports.Persistence = BaseModel.extend({
         }
 
         // Start the app.
-        logger.info('App starting up.');
+        
         this._appProcess = child_process.spawn(parts[0], parts.slice(1), {
             cwd: path.dirname(parts[0])
         }).on('exit', _.bind(function() {
             this._appProcess = null;
+            logger.info('appprocess exit')
         }, this));
+        logger.info('App starting up. '+this._appProcess.pid);
         this._resetRestartTimeout(this.get('startupTimeout'));
 
         if (!this.get('sideCommand')) {

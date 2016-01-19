@@ -200,8 +200,9 @@ exports.Network = BaseModel.extend({
     // Generic handler to decode and re-post OSC messages as native events.
     _handleOsc: function(transport, message, info) {
         //if (String(message) != 'heart') console.log("osc message: " + String(message));
+
         var e = message[0].replace('/', '');
-        var data = message[1] ? JSON.parse(message[1]) : null;
-        transport.emit(e, data);
+        //var data = message[1] ? JSON.parse(message[1]) : null;
+       transport.emit(e, message[1] );
     }
 });
