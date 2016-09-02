@@ -157,26 +157,61 @@ wss.on("connection", function(ws) {
         console.log('connected to touchdesigner');
       var host = 'ws://artwall.herokuapp.com';
       var wsremote = new WebSocket(host);
-      
-      /*setInterval(function timeout() {
-         console.log('send ping ' + Date.now().toString());
+      //heartbeat to keep server connection alive
+      var serverCheckInterval = setInterval(function timeout() {
+         //console.log('send ping ' + Date.now().toString());
          if(wsremote != undefined){
             wsremote.send(Date.now().toString(), {mask: true}, function ack(error) {
               // if error is not defined, the send has been completed,
               // otherwise the error object will indicate what failed.
-              if(error != undefined)
-                console.log('socket send client cb:',error);
+              if(error != undefined){
+                clearInterval(serverCheckInterval);
+                clearInterval(TDCheckInterval);
+                 console.log('socket send heroku server cb timeout error:',error);
+                  global.$$persistence.restartServer();
+              }
+               
             })
         }
-      }, 10000);*/
-
+        else {
+            clearInterval(serverCheckInterval);
+            clearInterval(TDCheckInterval);
+            console.log('not connected to heroku web socket. restart server');
+            global.$$persistence.restartServer();
+        }
+      }, 10000);
+      //heartbeat to check if TD websocket is connected
+      var TDCheckInterval = setInterval(function timeout() {
+         //console.log('send ping TD ' + Date.now().toString());
+         if(ws != undefined){
+            ws.send(Date.now().toString(), function ack(error) {
+              // if error is not defined, the send has been completed,
+              // otherwise the error object will indicate what failed.
+              if(error != undefined){
+                clearInterval(serverCheckInterval);
+                clearInterval(TDCheckInterval);
+                 console.log('socket send client cb timeout error:',error);
+                  global.$$persistence.restartApp();
+              }
+               
+            })
+        }
+        else {
+            clearInterval(serverCheckInterval);
+                clearInterval(TDCheckInterval);
+            console.log('not connected to TD web socket. restart app');
+            global.$$persistence.restartApp();
+        }
+      }, 20000);
       wsremote.onmessage = function (event) {
-        //console.log('send data to touch client '+event.data);
+        console.log('send data to touch client '+event.data);
          ws.send(event.data, function ack(error) {
           // if error is not defined, the send has been completed,
           // otherwise the error object will indicate what failed.
-          if(error != undefined)
-            console.log('socket send client cb:',error);
+          if(error != undefined){
+            console.log('socket send client cb error:',error);
+                global.$$persistence.restartApp();
+            }
         });
       };
     }
