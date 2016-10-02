@@ -144,22 +144,46 @@ var server  = require('http').createServer(app);
 var WebSocketServer = require("ws").Server;
 var wss = new WebSocketServer({server: server});
 var WebSocket = require('ws');
+var sockets = []
 console.log("websocket server created");
 
 app.set('port', (process.env.PORT || 5000));
 
+// Close the socket properly and remove it from the list
+var forgetSocket = function(socket) {
+  console.log('closing socket');
+  socket.on('error', function() {
+    console.log('error closing socket, terminating ...')
+    socket.terminate()
+  })
+  socket.close()
+  socket.removeAllListeners()
+  sockets = _.reject(sockets, function(other) {
+    return socket === other
+  })
+}
 
 server.listen(app.get('port'), function() {
   console.log('Node app is running on port', app.get('port'));
 });
 wss.on("connection", function(ws) {
+  console.log('New connection, total : ' + sockets.length)
+  ws.on('close', function() {
+    forgetSocket(ws)
+    console.log('WebSocketServer: Socket disconnected, left : ' + sockets.length)
+  })
+
+  ws.on('error', function() {
+    console.log('WebSocketServer: error closing socket ...')
+    forgetSocket(ws)
+  })
     try {
         console.log('connected to touchdesigner');
       var host = 'ws://artwall.herokuapp.com';
       var wsremote = new WebSocket(host);
       //heartbeat to keep server connection alive
       var serverCheckInterval = setInterval(function timeout() {
-         //console.log('send ping ' + Date.now().toString());
+       console.log('send server ping ' + Date.now().toString());
          if(wsremote != undefined){
             wsremote.send(Date.now().toString(), {mask: true}, function ack(error) {
               // if error is not defined, the send has been completed,
@@ -168,6 +192,7 @@ wss.on("connection", function(ws) {
                 clearInterval(serverCheckInterval);
                 clearInterval(TDCheckInterval);
                  console.log('socket send heroku server cb timeout error:',error);
+              forgetSocket(ws);
                   global.$$persistence.restartServer();
               }
                
@@ -177,12 +202,13 @@ wss.on("connection", function(ws) {
             clearInterval(serverCheckInterval);
             clearInterval(TDCheckInterval);
             console.log('not connected to heroku web socket. restart server');
+        forgetSocket(ws);
             global.$$persistence.restartServer();
         }
       }, 10000);
       //heartbeat to check if TD websocket is connected
       var TDCheckInterval = setInterval(function timeout() {
-         //console.log('send ping TD ' + Date.now().toString());
+       console.log('send ping TD ' + Date.now().toString());
          if(ws != undefined){
             ws.send(Date.now().toString(), function ack(error) {
               // if error is not defined, the send has been completed,
@@ -190,6 +216,7 @@ wss.on("connection", function(ws) {
               if(error != undefined){
                 clearInterval(serverCheckInterval);
                 clearInterval(TDCheckInterval);
+              forgetSocket(ws);
                  console.log('socket send client cb timeout error:',error);
                   global.$$persistence.restartApp();
               }
@@ -199,6 +226,7 @@ wss.on("connection", function(ws) {
         else {
             clearInterval(serverCheckInterval);
                 clearInterval(TDCheckInterval);
+        forgetSocket(ws);
             console.log('not connected to TD web socket. restart app');
             global.$$persistence.restartApp();
         }
@@ -210,6 +238,7 @@ wss.on("connection", function(ws) {
           // otherwise the error object will indicate what failed.
           if(error != undefined){
             console.log('socket send client cb error:',error);
+          forgetSocket(ws);
                 global.$$persistence.restartApp();
             }
         });
