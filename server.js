@@ -205,7 +205,7 @@ wss.on("connection", function(ws) {
         forgetSocket(ws);
             global.$$persistence.restartServer();
         }
-      }, 10000);
+      }, 30000);
       //heartbeat to check if TD websocket is connected
       var TDCheckInterval = setInterval(function timeout() {
        console.log('send ping TD ' + Date.now().toString());
@@ -230,7 +230,7 @@ wss.on("connection", function(ws) {
             console.log('not connected to TD web socket. restart app');
             global.$$persistence.restartApp();
         }
-      }, 20000);
+      }, 60000);
       wsremote.onmessage = function (event) {
         console.log('send data to touch client '+event.data);
          ws.send(event.data, function ack(error) {
